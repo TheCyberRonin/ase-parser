@@ -14,7 +14,7 @@ class Aseprite {
     this.numColors;
     this.pixelRatio;
     this.name = name;
-    this.tags = {};
+    this.tags = [];
   }
   readNextByte() {
     const nextByte = this._buffer.readUInt8(this._offset);
@@ -115,13 +115,6 @@ class Aseprite {
     const frameDuration = this.readNextWord();
     this.skipBytes(2);
     const newChunk = this.readNextDWord();
-    /*
-    console.log({
-      bytesInFrame,
-      oldChunk,
-      frameDuration,
-      newChunk
-    }); */
     let cels = [];
     for(let i = 0; i < newChunk; i ++) {
       let chunkData = this.readChunk();
@@ -135,11 +128,9 @@ class Aseprite {
           this.skipBytes(chunkData.chunkSize - 6);
           break;
         case 0x2004:
-          console.log('Layer');
           this.readLayerChunk();
           break;
         case 0x2005:
-          console.log('Cel')
           let celData = this.readCelChunk(chunkData.chunkSize);
           cels.push(celData);
           break;
@@ -147,11 +138,9 @@ class Aseprite {
           this.readColorProfileChunk();
           break;
         case 0x2018:
-          console.log('Frame Tags');
           this.readFrameTagsChunk();
           break;
         case 0x2019:
-          console.log('Palette');
           this.palette = this.readPaletteChunk();
           break;
       }
@@ -162,34 +151,41 @@ class Aseprite {
       cels});
   }
   readColorProfileChunk() {
-    const type = this.readNextWord();
+    const types = [
+      'None',
+      'sRGB',
+      'ICC'
+    ]
+    const typeInd = this.readNextWord();
+    const type = types[typeInd];
     const flag = this.readNextWord();
     const fGamma = this.readNextFixed();
     this.skipBytes(8);
-    /*
-    console.log({
+    //handle ICC profile data
+    this.colorProfile = {
       type,
-      flag,
-      fGamma
-    });*/
-    this.colorProfile = {type,
       flag,
       fGamma};
   }
   readFrameTagsChunk() {
+    const loops = [
+      'Forward',
+      'Reverse',
+      'Ping-pong'
+    ]
     const numTags = this.readNextWord();
     this.skipBytes(8);
     for(let i = 0; i < numTags; i ++) {
       let tag = {};
       tag.from = this.readNextWord();
       tag.to = this.readNextWord();
-      tag.animDirection = this.readNextByte();
+      const loopsInd = this.readNextByte();
+      tag.animDirection = loops[loopsInd];
       this.skipBytes(8);
       tag.color = this.readNextRawBytes(3).readUIntLE(0,3);
       this.skipBytes(1);
-      const name = this.readNextString();
-      this.tags[name] = tag;
-      console.log(tag);
+      tag.name = this.readNextString();
+      this.tags.push(tag);
     }
   }
   readPaletteChunk() {
@@ -217,13 +213,6 @@ class Aseprite {
         name: name !== undefined ? name : "none"
       });
     }
-    /*
-    console.log({
-      paletteSize,
-      firstColor,
-      secondColor,
-      colors
-    });*/
     return { paletteSize,
       firstColor,
       lastColor: secondColor,
@@ -244,15 +233,6 @@ class Aseprite {
       blendMode,
       opacity,
       name});
-      /*
-    console.log({
-      flags,
-      type,
-      layerChildLevel,
-      blendMode,
-      opacity,
-      name
-    });*/
   }
   //size of chunk in bytes for the WHOLE thing
   readCelChunk(chunkSize) {
@@ -265,17 +245,12 @@ class Aseprite {
     const w = this.readNextWord();
     const h = this.readNextWord();
     const buff = this.readNextRawBytes(chunkSize - 26); //take the first 20 bytes off for the data above and chunk info
-    /*
-    console.log({
-      layerIndex,
-      x,
-      y,
-      opacity,
-      celType,
-      w,
-      h
-    });*/
-    const rawCel = zlib.inflateSync(buff);
+    let rawCel;
+    if(celType === 2) {
+      rawCel = zlib.inflateSync(buff);
+    } else if(celType === 0) {
+      rawCel = buff;
+    }
     return { layerIndex,
       xpos: x,
       ypos: y,
@@ -288,11 +263,6 @@ class Aseprite {
   readChunk() {
     const cSize = this.readNextDWord();
     const type = this.readNextWord();
-    /*
-    console.log({
-      cSize,
-      type
-    });*/
     return {chunkSize: cSize, type: type};
   }
   parse() {
@@ -312,25 +282,29 @@ class Aseprite {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   };
-  toEmbed() {
-    const fileName = this.name.replace('.aseprite', '.png');
-    const emb = { title: fileName};
-    emb.image = {url: `attachment://${fileName}`}
-    emb.fields = [];
-    //size
-    emb.fields.push({name: 'Size', value: this.formatBytes(this.fileSize, 2)});
-    //framecount
-    emb.fields.push({name: 'Frames', value: this.numFrames});
-    //width and height
-    emb.fields.push({name: 'Dimensions', value: `${this.width}X${this.height}`});
-    //pixel ratio
-    emb.fields.push({name: 'Tags' ,value: Object.keys(this.tags).length});
-    return emb;
-  }
   toJSON() {
     return {
       fileSize: this.fileSize,
-      frames: this.numFrames,
+      numFrames: this.numFrames,
+      frames: this.frames.map(frame => {
+        return {
+          size: frame.bytesInFrame,
+          duration: frame.frameDuration,
+          chunks: frame.numChunks,
+          cels: frame.cels.map(cel => {
+            return {
+              layerIndex: cel.layerIndex,
+              xpos: cel.xpos,
+              ypos: cel.ypos,
+              opacity: cel.opacity,
+              celType: cel.celType,
+              w: cel.w,
+              h: cel.h,
+              rawCelData: 'buffer'
+            }
+          }) }
+      }),
+      palette: this.palette,
       width: this.width,
       height: this.height,
       colorDepth: this.colorDepth,
