@@ -182,7 +182,7 @@ class Aseprite {
       const loopsInd = this.readNextByte();
       tag.animDirection = loops[loopsInd];
       this.skipBytes(8);
-      tag.color = this.readNextRawBytes(3).readUIntLE(0,3);
+      tag.color = this.readNextRawBytes(3).toString('hex');
       this.skipBytes(1);
       tag.name = this.readNextString();
       this.tags.push(tag);
@@ -205,7 +205,6 @@ class Aseprite {
         name = this.readNextString();
       }
       colors.push({
-        flag,
         red,
         green,
         blue,

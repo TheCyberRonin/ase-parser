@@ -48,8 +48,8 @@ declare namespace Aseprite {
     name: string;
     from: number;
     to: number;
-    animDirection: number;
-    color: number;
+    animDirection: string;
+    color: string;
   }
   export interface Layer {
     flags: number;
