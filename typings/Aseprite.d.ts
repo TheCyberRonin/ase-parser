@@ -3,6 +3,12 @@ declare class Aseprite {
   layers: Array<Aseprite.Layer>;
   tags: Array<Aseprite.Tag>;
   palette: Aseprite.Palette;
+  colorProfile: Aseprite.ColorProfile;
+  name: string;
+  paletteIndex: number;
+  colorDepth: number;
+  pixelRatio: string;
+  numColors: number;
   fileSize: number;
   width: number;
   height: number;
@@ -26,6 +32,7 @@ declare namespace Aseprite {
     firstColor: number;
     lastColor: number;
     colors: Array<Color>;
+    index?: number;
   }
   export interface Color {
     red: number;
@@ -64,5 +71,11 @@ declare namespace Aseprite {
     frameDuration: number;
     numChunks: number;
     cels: Array<Cel>;
+  }
+  export interface ColorProfile {
+    type: string;
+    flag: number;
+    fGamma: number;
+    icc?: Buffer;
   }
 }

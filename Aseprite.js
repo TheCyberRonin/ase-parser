@@ -11,6 +11,7 @@ class Aseprite {
     this.width;
     this.height;
     this.colorDepth;
+    this.paletteIndex;
     this.numColors;
     this.pixelRatio;
     this.name = name;
@@ -100,7 +101,9 @@ class Aseprite {
     this.width = this.readNextWord();
     this.height = this.readNextWord();
     this.colorDepth = this.readNextWord();
-    this.skipBytes(18);
+    this.skipBytes(14);
+    this.paletteIndex = this.readNextByte();
+    this.skipBytes(3);
     this.numColors = this.readNextWord();
     const pixW = this.readNextByte();
     const pixH = this.readNextByte();
@@ -212,10 +215,14 @@ class Aseprite {
         name: name !== undefined ? name : "none"
       });
     }
-    return { paletteSize,
+    let palette = {
+      paletteSize,
       firstColor,
       lastColor: secondColor,
-      colors };
+      colors
+    }
+    this.colorDepth === 8 ? palette.index = this.paletteIndex : '';
+    return palette;
   }
   readLayerChunk() {
     const flags = this.readNextWord();

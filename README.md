@@ -123,6 +123,7 @@ aseFile.parse();
 | width        | integer                | width (in pixels)                      |
 | height       | integer                | height (in pixels)                     |
 | colorDepth   | integer                | color depth (in bits per pixel)        |
+| paletteIndex | integer            | position of the indexed color based on the palette |
 | numColors    | integer                | number of colors                       |
 | pixelRatio   | string                 | width:height                           |
 | name         | string                 | name of the file                       |
@@ -171,6 +172,7 @@ aseFile.parse();
 | firstColor  | integer                | index of the first color |
 | lastColor   | integer                | index of the last color  |
 | colors      | array of [color](#color-object) objects | colors                   |
+| index?      | integer                | position of the indexed color based on the palette |
 
 ## Cel Object
 | Field      | Type    | Description                                  |

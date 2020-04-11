@@ -1,3 +1,4 @@
 test/*
+.git/*
 .DS_STORE
 package-lock.json
