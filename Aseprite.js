@@ -6,6 +6,7 @@ class Aseprite {
     this._buffer = buffer;
     this.frames = [];
     this.layers = [];
+    this.slices = [];
     this.fileSize;
     this.numFrames;
     this.width;
@@ -127,8 +128,10 @@ class Aseprite {
         case 0x2016:
         case 0x2017:
         case 0x2020:
-        case 0x2022:
           this.skipBytes(chunkData.chunkSize - 6);
+          break;
+        case 0x2022:
+          this.readSliceChunk();
           break;
         case 0x2004:
           this.readLayerChunk();
@@ -224,6 +227,34 @@ class Aseprite {
     this.colorDepth === 8 ? palette.index = this.paletteIndex : '';
     return palette;
   }
+  readSliceChunk() {
+    const numSliceKeys = this.readNextDWord();
+    const flags = this.readNextDWord();
+    const patch = (flags & 1) !== 0 ? {} : null
+    const pivot = (flags & 2) !== 0 ? {} : null
+    this.skipBytes(4);
+    const name = this.readNextString()
+    const keys = []
+    for(let i = 0; i < numSliceKeys; i ++) {
+      const frameNumber = this.readNextDWord();
+      const x = this.readNextLong();
+      const y = this.readNextLong();
+      const width = this.readNextDWord();
+      const height = this.readNextDWord();
+      if (patch) {
+        patch.x = this.readNextLong();
+        patch.y = this.readNextLong();
+        patch.width = this.readNextDWord();
+        patch.height = this.readNextDWord();
+      }
+      if (pivot) {
+        pivot.x = this.readNextLong();
+        pivot.y = this.readNextLong();
+      }
+      keys.push({ frameNumber, x, y, width, height, patch, pivot })
+    }
+    this.slices.push({ flags, name, keys });
+  }
   readLayerChunk() {
     const flags = this.readNextWord();
     const type = this.readNextWord();
@@ -316,7 +347,8 @@ class Aseprite {
       colorDepth: this.colorDepth,
       numColors: this.numColors,
       pixelRatio: this.pixelRatio,
-      layers: this.layers
+      layers: this.layers,
+      slices: this.slices
     };
   }
 }
