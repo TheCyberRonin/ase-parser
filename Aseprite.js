@@ -230,30 +230,35 @@ class Aseprite {
   readSliceChunk() {
     const numSliceKeys = this.readNextDWord();
     const flags = this.readNextDWord();
-    const patch = (flags & 1) !== 0 ? {} : null
-    const pivot = (flags & 2) !== 0 ? {} : null
     this.skipBytes(4);
-    const name = this.readNextString()
-    const keys = []
+    const name = this.readNextString();
+    const keys = [];
     for(let i = 0; i < numSliceKeys; i ++) {
       const frameNumber = this.readNextDWord();
       const x = this.readNextLong();
       const y = this.readNextLong();
       const width = this.readNextDWord();
       const height = this.readNextDWord();
-      if (patch) {
-        patch.x = this.readNextLong();
-        patch.y = this.readNextLong();
-        patch.width = this.readNextDWord();
-        patch.height = this.readNextDWord();
+      const key = { frameNumber, x, y, width, height };
+      if((flags & 2) !== 0) {
+        key.patch = this.readSlicePatchChunk();
+        key.pivot = this.readSlicePivotChunk();
       }
-      if (pivot) {
-        pivot.x = this.readNextLong();
-        pivot.y = this.readNextLong();
-      }
-      keys.push({ frameNumber, x, y, width, height, patch, pivot })
+      keys.push(key);
     }
     this.slices.push({ flags, name, keys });
+  }
+  readSlicePatchChunk() {
+    const x = this.readNextLong();
+    const y = this.readNextLong();
+    const width = this.readNextDWord();
+    const height = this.readNextDWord();
+    return { x, y, width, height };
+  }
+  readSlicePivotChunk() {
+    const x = this.readNextLong();
+    const y = this.readNextLong();
+    return { x, y };
   }
   readLayerChunk() {
     const flags = this.readNextWord();

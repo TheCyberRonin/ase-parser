@@ -68,6 +68,11 @@ declare namespace Aseprite {
     name: string;
   }
   export interface Slice {
+    flags: number;
+    keys: SliceKey[];
+    name: string;
+  }
+  export interface SliceKey {
     frameNumber: number;
     x: number;
     y: number;
