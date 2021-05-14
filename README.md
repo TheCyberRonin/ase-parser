@@ -130,6 +130,7 @@ aseFile.parse();
 | tags         | arry of [tag](#tag-object) objects    | tags                                   |
 | colorProfile | [colorProfile](#color-profile-object) object    | Color profile                          |
 | palette      | [palette](#palette-object) object         | Palette                                |
+| slices       | array of [slice](#slice-object) objects | Info on slices |
 
 ## Frame Object
 | Field         | Type                  | Description      |
@@ -194,6 +195,38 @@ aseFile.parse();
 | blue  | integer | blue value (0-255)                            |
 | alpha | integer | alpha value (0-255)                           |
 | name  | string  | 'none' or the actual color name if it has one |
+
+## Slice Object
+| Field | Type    | Description           |
+|-------|---------|-----------------------|
+| flags | integer | Flags set             |
+| keys  | array of [SliceKey](#slicekey-object) objects | Array of keys and their values |
+| name  | string  | Name of the slice |
+
+## SliceKey Object
+| Field | Type    | Description       |
+|-------|---------|-------------------|
+| frameNumber | integer | Frame number that the slice is from |
+| x     | integer | X position of the slice |
+| y     | integer | Y position of the slice |
+| width | integer | Width of the slice |
+| height | integer | Height of the slice |
+| patch? | [patch](#patch-object) object | Patch info on the slice |
+| pivot? | [pivot](#pivot-object) object | Pivot info on the slice |
+
+## Patch Object
+| Field | Type    | Description       |
+|-------|---------|-------------------|
+| x     | integer | X postion of the patch |
+| y     | integer | Y position of the patch |
+| width | integer | Width of the patch |
+| height | integer | Height of the patch |
+
+## Pivot Object
+| Field | Type    | Description     |
+|-------|---------|-----------------|
+| x     | integer | X position of the pivot |
+| y     | integer | Y position of the pivot |
 
 # Further Info
 
