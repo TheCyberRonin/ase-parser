@@ -1,6 +1,7 @@
 declare class Aseprite {
   frames: Array<Aseprite.Frame>;
   layers: Array<Aseprite.Layer>;
+  slices: Array<Aseprite.Slice>;
   tags: Array<Aseprite.Tag>;
   palette: Aseprite.Palette;
   colorProfile: Aseprite.ColorProfile;
@@ -65,6 +66,28 @@ declare namespace Aseprite {
     blendMode: number;
     opacity: number;
     name: string;
+  }
+  export interface Slice {
+    flags: number;
+    keys: SliceKey[];
+    name: string;
+  }
+  export interface SliceKey {
+    frameNumber: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    patch?: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    };
+    pivot?: {
+      x: number;
+      y: number;
+    }
   }
   export interface Frame {
     bytesInFrame: number;

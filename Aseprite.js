@@ -6,6 +6,7 @@ class Aseprite {
     this._buffer = buffer;
     this.frames = [];
     this.layers = [];
+    this.slices = [];
     this.fileSize;
     this.numFrames;
     this.width;
@@ -127,8 +128,10 @@ class Aseprite {
         case 0x2016:
         case 0x2017:
         case 0x2020:
-        case 0x2022:
           this.skipBytes(chunkData.chunkSize - 6);
+          break;
+        case 0x2022:
+          this.readSliceChunk();
           break;
         case 0x2004:
           this.readLayerChunk();
@@ -224,6 +227,39 @@ class Aseprite {
     this.colorDepth === 8 ? palette.index = this.paletteIndex : '';
     return palette;
   }
+  readSliceChunk() {
+    const numSliceKeys = this.readNextDWord();
+    const flags = this.readNextDWord();
+    this.skipBytes(4);
+    const name = this.readNextString();
+    const keys = [];
+    for(let i = 0; i < numSliceKeys; i ++) {
+      const frameNumber = this.readNextDWord();
+      const x = this.readNextLong();
+      const y = this.readNextLong();
+      const width = this.readNextDWord();
+      const height = this.readNextDWord();
+      const key = { frameNumber, x, y, width, height };
+      if((flags & 2) !== 0) {
+        key.patch = this.readSlicePatchChunk();
+        key.pivot = this.readSlicePivotChunk();
+      }
+      keys.push(key);
+    }
+    this.slices.push({ flags, name, keys });
+  }
+  readSlicePatchChunk() {
+    const x = this.readNextLong();
+    const y = this.readNextLong();
+    const width = this.readNextDWord();
+    const height = this.readNextDWord();
+    return { x, y, width, height };
+  }
+  readSlicePivotChunk() {
+    const x = this.readNextLong();
+    const y = this.readNextLong();
+    return { x, y };
+  }
   readLayerChunk() {
     const flags = this.readNextWord();
     const type = this.readNextWord();
@@ -316,7 +352,8 @@ class Aseprite {
       colorDepth: this.colorDepth,
       numColors: this.numColors,
       pixelRatio: this.pixelRatio,
-      layers: this.layers
+      layers: this.layers,
+      slices: this.slices
     };
   }
 }
