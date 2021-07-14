@@ -240,8 +240,10 @@ class Aseprite {
       const width = this.readNextDWord();
       const height = this.readNextDWord();
       const key = { frameNumber, x, y, width, height };
-      if((flags & 2) !== 0) {
+      if((flags & 1) !== 0) {
         key.patch = this.readSlicePatchChunk();
+      }
+      if((flags & 2) !== 0) {
         key.pivot = this.readSlicePivotChunk();
       }
       keys.push(key);
