@@ -4,6 +4,7 @@ declare class Aseprite {
   slices: Array<Aseprite.Slice>;
   tags: Array<Aseprite.Tag>;
   palette: Aseprite.Palette;
+  tilesets: Array<Aseprite.Tileset>;
   colorProfile: Aseprite.ColorProfile;
   name: string;
   paletteIndex: number;
@@ -35,6 +36,18 @@ declare namespace Aseprite {
     colors: Array<Color>;
     index?: number;
   }
+  export interface Tileset {
+    id: number;
+    tileCount: number;
+    tileWidth: number;
+    tileHeight: number;
+    name: string;
+    externalFile?: {
+      id: number;
+      tilesetId: number;
+    };
+    rawTilesetData?: Buffer;
+  }
   export interface Color {
     red: number;
     green: number;
@@ -50,6 +63,13 @@ declare namespace Aseprite {
     celType: number;
     w: number;
     h: number;
+    tilemapMetadata?: {
+      bitsPerTile: number;
+      bitmaskForTileId: number;
+      bitmaskForXFlip: number;
+      bitmaskForYFlip: number;
+      bitmaskFor90CWRotation: number;
+    };
     rawCelData: Buffer;
   }
   export interface Tag {
@@ -66,6 +86,7 @@ declare namespace Aseprite {
     blendMode: number;
     opacity: number;
     name: string;
+    tilesetIndex: number | undefined;
   }
   export interface Slice {
     flags: number;

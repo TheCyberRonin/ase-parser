@@ -17,6 +17,7 @@ class Aseprite {
     this.pixelRatio;
     this.name = name;
     this.tags = [];
+    this.tilesets = [];
   }
   readNextByte() {
     const nextByte = this._buffer.readUInt8(this._offset);
@@ -149,6 +150,11 @@ class Aseprite {
         case 0x2019:
           this.palette = this.readPaletteChunk();
           break;
+        case 0x2023:
+          this.tilesets.push(this.readTilesetChunk());
+          break;
+        default: // ignore unknown chunk types
+          this.skipBytes(chunkData.chunkSize - 6);
       }
     }
     this.frames.push({ bytesInFrame,
@@ -227,6 +233,32 @@ class Aseprite {
     this.colorDepth === 8 ? palette.index = this.paletteIndex : '';
     return palette;
   }
+  readTilesetChunk() {
+    const id = this.readNextDWord();
+    const flags = this.readNextDWord();
+    const tileCount = this.readNextDWord();
+    const tileWidth = this.readNextWord();
+    const tileHeight = this.readNextWord();
+    this.skipBytes(16);
+    const name = this.readNextString();
+    const tileset = {
+      id,
+      tileCount,
+      tileWidth,
+      tileHeight,
+      name };
+    if ((flags & 1) !== 0) {
+      tileset.externalFile = {}
+      tileset.externalFile.id = this.readNextDWord();
+      tileset.externalFile.tilesetId = this.readNextDWord();
+    }
+    if ((flags & 2) !== 0) {
+      const dataLength = this.readNextDWord();
+      const buff = this.readNextRawBytes(dataLength);
+      tileset.rawTilesetData = zlib.inflateSync(buff);
+    }
+    return tileset;
+  }
   readSliceChunk() {
     const numSliceKeys = this.readNextDWord();
     const flags = this.readNextDWord();
@@ -271,12 +303,14 @@ class Aseprite {
     const opacity = this.readNextByte();
     this.skipBytes(3);
     const name = this.readNextString();
+    const tilesetIndex = (type == 2) ? this.readNextDWord() : undefined;
     this.layers.push({ flags,
       type,
       layerChildLevel,
       blendMode,
       opacity,
-      name});
+      name,
+      tilesetIndex});
   }
   //size of chunk in bytes for the WHOLE thing
   readCelChunk(chunkSize) {
@@ -288,6 +322,15 @@ class Aseprite {
     this.skipBytes(7);
     const w = this.readNextWord();
     const h = this.readNextWord();
+    const chunkInfo = { layerIndex, xpos: x, ypos: y, opacity, celType, w, h };
+    if (celType === 0 || celType === 2) {
+      return this.readImageCelChunk(chunkSize, chunkInfo)
+    }
+    if (celType === 3) {
+      return this.readTilemapCelChunk(chunkSize, chunkInfo)
+    }
+  }
+  readImageCelChunk(chunkSize, chunkInfo) {
     const buff = this.readNextRawBytes(chunkSize - 26); //take the first 20 bytes off for the data above and chunk info
     let rawCel;
     if(celType === 2) {
@@ -295,14 +338,24 @@ class Aseprite {
     } else if(celType === 0) {
       rawCel = buff;
     }
-    return { layerIndex,
-      xpos: x,
-      ypos: y,
-      opacity,
-      celType,
-      w,
-      h,
-      rawCelData: rawCel}
+    return { ...chunkInfo, rawCelData: rawCel };
+  }
+  readTilemapCelChunk(chunkSize, chunkInfo) {
+    const bitsPerTile = this.readNextWord();
+    const bitmaskForTileId = this.readNextDWord();
+    const bitmaskForXFlip = this.readNextDWord();
+    const bitmaskForYFlip = this.readNextDWord();
+    const bitmaskFor90CWRotation = this.readNextDWord();
+    this.skipBytes(10);
+    const buff = this.readNextRawBytes(chunkSize - 54);
+    const rawCelData = zlib.inflateSync(buff);
+    const tilemapMetadata = {
+      bitsPerTile,
+      bitmaskForTileId,
+      bitmaskForXFlip,
+      bitmaskForYFlip,
+      bitmaskFor90CWRotation };
+    return { ...chunkInfo, tilemapMetadata, rawCelData };
   }
   readChunk() {
     const cSize = this.readNextDWord();
@@ -314,7 +367,7 @@ class Aseprite {
     for(let i = 0; i < numFrames; i ++) {
       this.readFrame();
     }
-   
+
   }
   formatBytes(bytes,decimals) {
     if (bytes === 0) {
@@ -349,6 +402,7 @@ class Aseprite {
           }) }
       }),
       palette: this.palette,
+      tileset: this.tileset,
       width: this.width,
       height: this.height,
       colorDepth: this.colorDepth,
