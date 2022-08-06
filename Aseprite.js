@@ -295,22 +295,19 @@ class Aseprite {
     return { x, y };
   }
   readLayerChunk() {
-    const flags = this.readNextWord();
-    const type = this.readNextWord();
-    const layerChildLevel = this.readNextWord();
+    const layer = {}
+    layer.flags = this.readNextWord();
+    layer.type = this.readNextWord();
+    layer.layerChildLevel = this.readNextWord();
     this.skipBytes(4);
-    const blendMode = this.readNextWord();
-    const opacity = this.readNextByte();
+    layer.blendMode = this.readNextWord();
+    layer.opacity = this.readNextByte();
     this.skipBytes(3);
-    const name = this.readNextString();
-    const tilesetIndex = (type == 2) ? this.readNextDWord() : undefined;
-    this.layers.push({ flags,
-      type,
-      layerChildLevel,
-      blendMode,
-      opacity,
-      name,
-      tilesetIndex});
+    layer.name = this.readNextString();
+    if (layer.type == 2) {
+      layer.tilesetIndex =this.readNextDWord()
+    }
+    this.layers.push(layer);
   }
   //size of chunk in bytes for the WHOLE thing
   readCelChunk(chunkSize) {
@@ -322,15 +319,15 @@ class Aseprite {
     this.skipBytes(7);
     const w = this.readNextWord();
     const h = this.readNextWord();
-    const chunkInfo = { layerIndex, xpos: x, ypos: y, opacity, celType, w, h };
+    const chunkBase = { layerIndex, xpos: x, ypos: y, opacity, celType, w, h };
     if (celType === 0 || celType === 2) {
-      return this.readImageCelChunk(chunkSize, chunkInfo)
+      return { ...chunkBase, ...this.readImageCelChunk(chunkSize) }
     }
     if (celType === 3) {
-      return this.readTilemapCelChunk(chunkSize, chunkInfo)
+      return { ...chunkBase, ...this.readTilemapCelChunk(chunkSize) }
     }
   }
-  readImageCelChunk(chunkSize, chunkInfo) {
+  readImageCelChunk(chunkSize) {
     const buff = this.readNextRawBytes(chunkSize - 26); //take the first 20 bytes off for the data above and chunk info
     let rawCel;
     if(celType === 2) {
@@ -338,9 +335,9 @@ class Aseprite {
     } else if(celType === 0) {
       rawCel = buff;
     }
-    return { ...chunkInfo, rawCelData: rawCel };
+    return { rawCelData: rawCel };
   }
-  readTilemapCelChunk(chunkSize, chunkInfo) {
+  readTilemapCelChunk(chunkSize) {
     const bitsPerTile = this.readNextWord();
     const bitmaskForTileId = this.readNextDWord();
     const bitmaskForXFlip = this.readNextDWord();
@@ -355,7 +352,7 @@ class Aseprite {
       bitmaskForXFlip,
       bitmaskForYFlip,
       bitmaskFor90CWRotation };
-    return { ...chunkInfo, tilemapMetadata, rawCelData };
+    return { tilemapMetadata, rawCelData };
   }
   readChunk() {
     const cSize = this.readNextDWord();
@@ -402,7 +399,7 @@ class Aseprite {
           }) }
       }),
       palette: this.palette,
-      tileset: this.tileset,
+      tilesets: this.tilesets,
       width: this.width,
       height: this.height,
       colorDepth: this.colorDepth,

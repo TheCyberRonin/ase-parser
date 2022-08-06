@@ -86,7 +86,7 @@ declare namespace Aseprite {
     blendMode: number;
     opacity: number;
     name: string;
-    tilesetIndex: number | undefined;
+    tilesetIndex?: number;
   }
   export interface Slice {
     flags: number;
