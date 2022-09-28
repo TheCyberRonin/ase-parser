@@ -286,6 +286,18 @@ class Aseprite {
     const opacity = this.readNextByte();
     const celType = this.readNextWord();
     this.skipBytes(7);
+    if (celType === 1) {
+      return { layerIndex,
+          xpos: x,
+          ypos: y,
+          opacity,
+          celType,
+          w: 0,
+          h: 0,
+          rawCelData: undefined,
+          link: this.readNextWord()
+      };
+    }
     const w = this.readNextWord();
     const h = this.readNextWord();
     const buff = this.readNextRawBytes(chunkSize - 26); //take the first 20 bytes off for the data above and chunk info
@@ -302,7 +314,8 @@ class Aseprite {
       celType,
       w,
       h,
-      rawCelData: rawCel}
+      rawCelData: rawCel
+    };
   }
   readChunk() {
     const cSize = this.readNextDWord();
@@ -314,7 +327,24 @@ class Aseprite {
     for(let i = 0; i < numFrames; i ++) {
       this.readFrame();
     }
-   
+    for(let i = 0; i < numFrames; i ++) {
+      for (let j = 0; j < this.frames[i].cels.length; j++) {
+        const cel = this.frames[i].cels[j];
+        if (cel.celType === 1) {
+          for (let k = 0; k < this.frames[cel.link].cels.length; k++) {
+            const srcCel = this.frames[cel.link].cels[k];
+            if (srcCel.layerIndex === cel.layerIndex) {
+              cel.w = srcCel.w;
+              cel.h = srcCel.h;
+              cel.rawCelData = srcCel.rawCelData;
+            }
+            if (cel.rawCelData) {
+              break;
+            }
+          }
+        }
+      }
+    }
   }
   formatBytes(bytes,decimals) {
     if (bytes === 0) {
