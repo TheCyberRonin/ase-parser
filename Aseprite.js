@@ -162,9 +162,10 @@ class Aseprite {
   }
 
   /**
-   * 
-   * @param {number} numBytes - 
-   * @returns 
+   * Copy the next numBytes bytes of the buffer into a new buffer
+   *
+   * @param {number} numBytes - Number of bytes to read
+   * @returns {Buffer}
    */
   readNextRawBytes(numBytes) {
     let buff = Buffer.alloc(numBytes);
@@ -173,7 +174,15 @@ class Aseprite {
     }
     return buff;
   }
-  //reads numBytes bytes of buffer b offset by offset bytes
+
+  /**
+   * Create a new buffer with numBytes size, offset by a value, from a buffer
+   *
+   * @param {number} numBytes - Number of bytes to read
+   * @param {Buffer} b - Buffer to read from
+   * @param {number} offset - Offset value to start reading from
+   * @returns {Buffer}
+   */
   readRawBytes(numBytes, b, offset) {
     let buff = Buffer.alloc(numBytes - offset);
     for (let i = 0; i < numBytes - offset; i++) {
@@ -181,6 +190,7 @@ class Aseprite {
     }
     return buff;
   }
+
   /**
    * Reads the next word to get the length of the string, then reads the string
    * and returns it
@@ -200,6 +210,7 @@ class Aseprite {
   skipBytes(numBytes) {
     this._offset += numBytes;
   }
+
   /**
    * Reads the 128-byte header of an Aseprite file and stores the information
    *
@@ -501,6 +512,14 @@ class Aseprite {
       }
     }
   }
+
+  /**
+   * Converts an amount of Bytes to a human readable format
+   *
+   * @param {number} bytes - Bytes to format
+   * @param {number} decimals - Number of decimals to format the number to
+   * @returns {string} - Amount of Bytes formatted in a more human readable format
+   */
   formatBytes(bytes,decimals) {
     if (bytes === 0) {
       return '0 Byte';
@@ -511,6 +530,7 @@ class Aseprite {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   };
+
   toJSON() {
     return {
       fileSize: this.fileSize,
