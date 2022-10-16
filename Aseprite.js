@@ -393,6 +393,11 @@ class Aseprite {
     this.colorDepth === 8 ? palette.index = this.paletteIndex : '';
     return palette;
   }
+
+  /**
+   * Reads the Slice Chunk and stores the information
+   * Slice Chunk is type 0x2022
+   */
   readSliceChunk() {
     const numSliceKeys = this.readNextDWord();
     const flags = this.readNextDWord();
@@ -416,6 +421,16 @@ class Aseprite {
     }
     this.slices.push({ flags, name, keys });
   }
+
+  /**
+   * Reads the Patch portion of a Slice Chunk
+   *
+   * @returns {Object} patch - Patch information that was in the chunk
+   * @returns {number} patch.x - Patch X location
+   * @returns {number} patch.y - Patch Y location
+   * @returns {number} patch.width - Patch width
+   * @returns {number} patch.height - Patch height
+   */
   readSlicePatchChunk() {
     const x = this.readNextLong();
     const y = this.readNextLong();
@@ -423,11 +438,24 @@ class Aseprite {
     const height = this.readNextDWord();
     return { x, y, width, height };
   }
+
+  /**
+   * Reads the Pivot portion of a Slice Chunk
+   *
+   * @returns {Object} pivot - Pivot information that was in the chunk
+   * @returns {number} pivot.x - Pivot X location
+   * @returns {number} pivot.y - Pivot Y location
+   */
   readSlicePivotChunk() {
     const x = this.readNextLong();
     const y = this.readNextLong();
     return { x, y };
   }
+
+  /**
+   * Reads the Layer Chunk and stores the information
+   * Layer Chunk is type 0x2004
+   */
   readLayerChunk() {
     const flags = this.readNextWord();
     const type = this.readNextWord();
@@ -444,7 +472,14 @@ class Aseprite {
       opacity,
       name});
   }
-  //size of chunk in bytes for the WHOLE thing
+
+  /**
+   * Reads a Cel Chunk in its entirety and returns the information
+   * Cel Chunk is type 0x2005
+   * 
+   * @param {number} chunkSize - Size of the Cel Chunk to read
+   * @returns {Object} Cel information
+   */
   readCelChunk(chunkSize) {
     const layerIndex = this.readNextWord();
     const x = this.readNextShort();
@@ -483,11 +518,23 @@ class Aseprite {
       rawCelData: rawCel
     };
   }
+
+  /**
+   * Reads the next Chunk Info block to get how large and what type the next Chunk is
+   *
+   * @returns {Object} chunkInfo
+   * @returns {number} chunkInfo.chunkSize - The size of the Chunk read
+   * @returns {number} chunkInfo.type - The type of the Chunk
+   */
   readChunk() {
     const cSize = this.readNextDWord();
     const type = this.readNextWord();
     return {chunkSize: cSize, type: type};
   }
+
+  /**
+   * Processes the Aseprite file and stores the information
+   */
   parse() {
     const numFrames = this.readHeader();
     for(let i = 0; i < numFrames; i ++) {
@@ -531,6 +578,11 @@ class Aseprite {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   };
 
+  /**
+   * Attempts to return the data in a string format
+   *
+   * @returns {string}
+   */
   toJSON() {
     return {
       fileSize: this.fileSize,
