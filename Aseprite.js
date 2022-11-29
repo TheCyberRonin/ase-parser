@@ -167,7 +167,11 @@ class Aseprite {
     const flag = this.readNextWord();
     const fGamma = this.readNextFixed();
     this.skipBytes(8);
-    //handle ICC profile data
+    if (typeInd === 2) {
+      //TODO: Handle ICC profile data properly instead of skipping
+      const skip = this.readNextDWord();
+      this.skipBytes(skip);
+    }
     this.colorProfile = {
       type,
       flag,
