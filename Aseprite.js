@@ -1,5 +1,8 @@
 const zlib = require('zlib');
 
+/**
+ * Aseprite Class to consume an Aseprite file and get information from it
+ */
 class Aseprite {
   constructor(buffer, name) {
     this._offset = 0;
@@ -18,54 +21,138 @@ class Aseprite {
     this.name = name;
     this.tags = [];
   }
+
+  /**
+   * Reads the next byte (8-bit unsigned) value in the buffer
+   *
+   * @returns {number}
+   */
   readNextByte() {
     const nextByte = this._buffer.readUInt8(this._offset);
     this._offset += 1;
     return nextByte;
   }
+
+  /**
+   * Reads a byte (8-bit unsigned) value in the buffer at a specific location
+   *
+   * @param {number} offset - Offset location in the buffer
+   * @returns {number}
+   */
   readByte(offset) {
     return this._buffer.readUInt8(offset);
   }
+
+  /**
+   * Reads the next word (16-bit unsigned) value in the buffer
+   *
+   * @returns {number}
+   */
   readNextWord() {
     const word = this._buffer.readUInt16LE(this._offset);
     this._offset += 2;
     return word;
   }
+
+  /**
+   * Reads a word (16-bit unsigned) value at a specific location
+   *
+   * @param {number} offset - Offset location in the buffer
+   * @returns {number}
+   */
   readWord(offset) {
     return this._buffer.readUInt16LE(offset);
   }
+
+  /**
+   * Reads the next short (16-bit signed) value in the buffer
+   *
+   * @returns {number}
+   */
   readNextShort() {
     const short = this._buffer.readInt16LE(this._offset);
     this._offset += 2;
     return short;
   }
+
+  /**
+   * Reads a short (16-bit signed) value at a specific location
+   *
+   * @param {number} offset - Offset location in the buffer
+   * @returns {number}
+   */
   readShort(offset) {
     return this._buffer.readInt16LE(offset);
   }
+
+  /**
+   * Reads the next DWord (32-bit unsigned) value from the buffer
+   *
+   * @returns {number}
+   */
   readNextDWord() {
     const dWord = this._buffer.readUInt32LE(this._offset);
     this._offset += 4;
     return dWord;
   }
+
+  /**
+   * Reads a DWord (32-bit unsigned) value at a specific location
+   *
+   * @param {number} offset - Offset location in the buffer
+   * @returns {number}
+   */
   readDWord(offset) {
     return this._buffer.readUInt32LE(offset);
   }
+
+  /**
+   * Reads the next long (32-bit signed) value from the buffer
+   *
+   * @returns {number}
+   */
   readNextLong() {
     const long = this._buffer.readInt32LE(this._offset);
     this._offset += 4;
     return long;
   }
+
+  /**
+   * Reads a long (32-bit signed) value at a specific location
+   *
+   * @param {number} offset - Offset location in the buffer
+   * @returns {number}
+   */
   readLong(offset) {
     return this._buffer.readInt32LE(offset);
   }
+
+  /**
+   * Reads the next fixed (32-bit fixed point 16.16) value from the buffer
+   *
+   * @returns {number}
+   */
   readNextFixed() {
     const fixed = this._buffer.readFloatLE(this._offset);
     this._offset += 4;
     return fixed;
   }
+
+  /**
+   * Reads a fixed (32-bit fixed point 16.16) value at a specific location
+   * @param {number} offset - Offset location in the buffer
+   * @returns {number}
+   */
   readFixed(offset) {
     return this._buffer.readFloatLE(offset);
   }
+
+  /**
+   * Reads the next numBytes bytes and creates a string from the buffer
+   *
+   * @param {number} numBytes - Number of bytes to read
+   * @returns {string}
+   */
   readNextBytes(numBytes) {
     let strBuff = Buffer.alloc(numBytes);
     for (let i = 0; i < numBytes; i++) {
@@ -73,6 +160,13 @@ class Aseprite {
     }
     return strBuff.toString();
   }
+
+  /**
+   * Copy the next numBytes bytes of the buffer into a new buffer
+   *
+   * @param {number} numBytes - Number of bytes to read
+   * @returns {Buffer}
+   */
   readNextRawBytes(numBytes) {
     let buff = Buffer.alloc(numBytes);
     for (let i = 0; i < numBytes; i++) {
@@ -80,7 +174,15 @@ class Aseprite {
     }
     return buff;
   }
-  //reads numBytes bytes of buffer b offset by offset bytes
+
+  /**
+   * Create a new buffer with numBytes size, offset by a value, from a buffer
+   *
+   * @param {number} numBytes - Number of bytes to read
+   * @param {Buffer} b - Buffer to read from
+   * @param {number} offset - Offset value to start reading from
+   * @returns {Buffer}
+   */
   readRawBytes(numBytes, b, offset) {
     let buff = Buffer.alloc(numBytes - offset);
     for (let i = 0; i < numBytes - offset; i++) {
@@ -88,35 +190,82 @@ class Aseprite {
     }
     return buff;
   }
+
+  /**
+   * Reads the next word to get the length of the string, then reads the string
+   * and returns it
+   *
+   * @returns {string}
+   */
   readNextString() {
     const numBytes = this.readNextWord();
     return this.readNextBytes(numBytes);
   }
+
+  /**
+   * Skips a number of bytes in the buffer
+   *
+   * @param {number} numBytes - Number of bytes to skip
+   */
   skipBytes(numBytes) {
     this._offset += numBytes;
   }
+
+  /**
+   * Reads the 128-byte header of an Aseprite file and stores the information
+   *
+   * @returns {number} Number of frames in the file
+   */
   readHeader() {
     this.fileSize = this.readNextDWord();
+    // Consume the next word (16-bit unsigned) value in the buffer
+    // to skip the "Magic number" (0xA5E0)
     this.readNextWord();
     this.numFrames = this.readNextWord();
     this.width = this.readNextWord();
     this.height = this.readNextWord();
     this.colorDepth = this.readNextWord();
+    /**
+     * Skip 14 bytes to account for:
+     *  Dword - Layer opacity flag
+     *  Word - deprecated speed (ms) between frame
+     *  Dword - 0 value
+     *  Dword - 0 value
+     */
     this.skipBytes(14);
     this.paletteIndex = this.readNextByte();
+    // Skip 3 bytes for empty data
     this.skipBytes(3);
     this.numColors = this.readNextWord();
     const pixW = this.readNextByte();
     const pixH = this.readNextByte();
     this.pixelRatio = `${pixW}:${pixH}`;
+    /**
+     * Skip 92 bytes to account for:
+     *  Short - X position of the grid
+     *  Short - Y position of the grid
+     *  Word - Grid width
+     *  Word - Grid height, defaults to 0 if there is no grid
+     *  (Defaults to 16x16 if there is no grid size)
+     *  Last 84 bytes is set to 0 for future use
+     */
     this.skipBytes(92);
     return this.numFrames;
   }
+
+  /**
+   * Reads a frame and stores the information
+   */
   readFrame() {
     const bytesInFrame = this.readNextDWord();
+    // skip bytes for the magic number (0xF1FA)
+    // TODO: Add a check in to make sure the magic number is correct
+    // (this should help to make sure we're doing what we're supposed to)
     this.skipBytes(2);
+    // TODO Use the old chunk of data if `newChunk` is 0
     const oldChunk = this.readNextWord();
     const frameDuration = this.readNextWord();
+    // Skip 2 bytes that are reserved for future use
     this.skipBytes(2);
     const newChunk = this.readNextDWord();
     let cels = [];
@@ -156,6 +305,11 @@ class Aseprite {
       numChunks: newChunk,
       cels});
   }
+
+  /**
+   * Reads the Color Profile Chunk and stores the information
+   * Color Profile Chunk is type 0x2007
+   */
   readColorProfileChunk() {
     const types = [
       'None',
@@ -177,6 +331,11 @@ class Aseprite {
       flag,
       fGamma};
   }
+
+  /**
+   * Reads the Tags Chunk and stores the information
+   * Tags Cunk is type 0x2018
+   */
   readFrameTagsChunk() {
     const loops = [
       'Forward',
@@ -198,6 +357,13 @@ class Aseprite {
       this.tags.push(tag);
     }
   }
+
+  /**
+   * Reads the Palette Chunk and stores the information
+   * Palette Chunk is type 0x2019
+   *
+   * @returns {Palette}
+   */
   readPaletteChunk() {
     const paletteSize = this.readNextDWord();
     const firstColor = this.readNextDWord();
@@ -231,6 +397,11 @@ class Aseprite {
     this.colorDepth === 8 ? palette.index = this.paletteIndex : '';
     return palette;
   }
+
+  /**
+   * Reads the Slice Chunk and stores the information
+   * Slice Chunk is type 0x2022
+   */
   readSliceChunk() {
     const numSliceKeys = this.readNextDWord();
     const flags = this.readNextDWord();
@@ -254,6 +425,16 @@ class Aseprite {
     }
     this.slices.push({ flags, name, keys });
   }
+
+  /**
+   * Reads the Patch portion of a Slice Chunk
+   *
+   * @returns {Object} patch - Patch information that was in the chunk
+   * @returns {number} patch.x - Patch X location
+   * @returns {number} patch.y - Patch Y location
+   * @returns {number} patch.width - Patch width
+   * @returns {number} patch.height - Patch height
+   */
   readSlicePatchChunk() {
     const x = this.readNextLong();
     const y = this.readNextLong();
@@ -261,11 +442,24 @@ class Aseprite {
     const height = this.readNextDWord();
     return { x, y, width, height };
   }
+
+  /**
+   * Reads the Pivot portion of a Slice Chunk
+   *
+   * @returns {Object} pivot - Pivot information that was in the chunk
+   * @returns {number} pivot.x - Pivot X location
+   * @returns {number} pivot.y - Pivot Y location
+   */
   readSlicePivotChunk() {
     const x = this.readNextLong();
     const y = this.readNextLong();
     return { x, y };
   }
+
+  /**
+   * Reads the Layer Chunk and stores the information
+   * Layer Chunk is type 0x2004
+   */
   readLayerChunk() {
     const flags = this.readNextWord();
     const type = this.readNextWord();
@@ -282,7 +476,14 @@ class Aseprite {
       opacity,
       name});
   }
-  //size of chunk in bytes for the WHOLE thing
+
+  /**
+   * Reads a Cel Chunk in its entirety and returns the information
+   * Cel Chunk is type 0x2005
+   * 
+   * @param {number} chunkSize - Size of the Cel Chunk to read
+   * @returns {Object} Cel information
+   */
   readCelChunk(chunkSize) {
     const layerIndex = this.readNextWord();
     const x = this.readNextShort();
@@ -321,11 +522,23 @@ class Aseprite {
       rawCelData: rawCel
     };
   }
+
+  /**
+   * Reads the next Chunk Info block to get how large and what type the next Chunk is
+   *
+   * @returns {Object} chunkInfo
+   * @returns {number} chunkInfo.chunkSize - The size of the Chunk read
+   * @returns {number} chunkInfo.type - The type of the Chunk
+   */
   readChunk() {
     const cSize = this.readNextDWord();
     const type = this.readNextWord();
     return {chunkSize: cSize, type: type};
   }
+
+  /**
+   * Processes the Aseprite file and stores the information
+   */
   parse() {
     const numFrames = this.readHeader();
     for(let i = 0; i < numFrames; i ++) {
@@ -350,6 +563,14 @@ class Aseprite {
       }
     }
   }
+
+  /**
+   * Converts an amount of Bytes to a human readable format
+   *
+   * @param {number} bytes - Bytes to format
+   * @param {number} decimals - Number of decimals to format the number to
+   * @returns {string} - Amount of Bytes formatted in a more human readable format
+   */
   formatBytes(bytes,decimals) {
     if (bytes === 0) {
       return '0 Byte';
@@ -360,6 +581,12 @@ class Aseprite {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   };
+
+  /**
+   * Attempts to return the data in a string format
+   *
+   * @returns {string}
+   */
   toJSON() {
     return {
       fileSize: this.fileSize,
