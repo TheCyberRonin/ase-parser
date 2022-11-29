@@ -1,3 +1,7 @@
+[![npm](https://img.shields.io/npm/v/ase-parser.svg)](https://www.npmjs.com/package/ase-parser)
+[![npm](https://img.shields.io/npm/dt/ase-parser.svg?maxAge=3600)](https://www.npmjs.com/package/ase-parser)
+[![install size](https://packagephobia.now.sh/badge?p=ase-parser)](https://packagephobia.now.sh/result?p=ase-parser)
+
 # ase-parser
 Parse Aseprite files with Node.js, no external dependencies.
 
