@@ -14,6 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
      - uses: actions/add-to-project@RELEASE_VERSION
-      with:
+       with:
         project-url: https://github.com/users/TheCyberRonin/projects/1
         github-token: ${{ secrets.GH_TOKEN }}
