@@ -1,6 +1,6 @@
 {
   "name": "ase-parser",
-  "version": "0.0.14",
+  "version": "0.0.16",
   "description": "Parser for Aseprite files",
   "main": "Aseprite.js",
   "typings": "./typings/Aseprite.d.ts",

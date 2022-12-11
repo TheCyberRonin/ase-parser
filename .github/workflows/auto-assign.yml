@@ -1,0 +1,16 @@
+name: Auto Assign Issues and PRs
+on:
+  issues:
+    types: [opened]
+  pull_request:
+    types: [opened]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+     - uses: wow-actions/auto-assign@v2
+       with:
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        reviewers: TheCyberRonin
+        assignees: TheCyberRonin
