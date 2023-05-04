@@ -78,6 +78,7 @@ declare namespace Aseprite {
     from: number;
     to: number;
     animDirection: string;
+    repeat: number;
     color: string;
   }
   export interface Layer {

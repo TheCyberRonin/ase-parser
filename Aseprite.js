@@ -346,7 +346,8 @@ class Aseprite {
     const loops = [
       'Forward',
       'Reverse',
-      'Ping-pong'
+      'Ping-pong',
+      'Ping-pong Reverse'
     ]
     const numTags = this.readNextWord();
     this.skipBytes(8);
@@ -356,7 +357,8 @@ class Aseprite {
       tag.to = this.readNextWord();
       const loopsInd = this.readNextByte();
       tag.animDirection = loops[loopsInd];
-      this.skipBytes(8);
+      tag.repeat = this.readNextWord();
+      this.skipBytes(6);
       tag.color = this.readNextRawBytes(3).toString('hex');
       this.skipBytes(1);
       tag.name = this.readNextString();

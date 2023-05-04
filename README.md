@@ -156,7 +156,8 @@ aseFile.parse();
 |---------------|---------|----------------------------------------|
 | from          | integer | first frame index                    |
 | to            | integer | last frame index                     |
-| animDirection | string  | `Forward`, `Reverse` or `Ping-pong`    |
+| animDirection | string  | `Forward`, `Reverse`, `Ping-pong` or `Ping-pong Reverse` |
+| repeat        | integer | repeat animation N times               |
 | color         | string  | hex color of the tag (no `#` included) |
 | name          | string  | name                                   |
 
