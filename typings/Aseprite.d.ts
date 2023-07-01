@@ -61,6 +61,7 @@ declare namespace Aseprite {
     ypos: number;
     opacity: number;
     celType: number;
+    zIndex: number;
     link?: number;
     w: number;
     h: number;

@@ -528,7 +528,8 @@ class Aseprite {
     const y = this.readNextShort();
     const opacity = this.readNextByte();
     const celType = this.readNextWord();
-    this.skipBytes(7);
+    const zIndex = this.readNextShort();
+    this.skipBytes(5);
     if (celType === 1) {
       return {
         layerIndex,
@@ -536,6 +537,7 @@ class Aseprite {
         ypos: y,
         opacity,
         celType,
+        zIndex,
         w: 0,
         h: 0,
         rawCelData: undefined,
@@ -544,7 +546,16 @@ class Aseprite {
     }
     const w = this.readNextWord();
     const h = this.readNextWord();
-    const chunkBase = { layerIndex, xpos: x, ypos: y, opacity, celType, w, h };
+    const chunkBase = {
+      layerIndex,
+      xpos: x,
+      ypos: y,
+      opacity,
+      celType,
+      zIndex,
+      w,
+      h
+    };
     if (celType === 0 || celType === 2) {
       const buff = this.readNextRawBytes(chunkSize - 26); // take the first 20 bytes off for the data above and chunk info
       return {
