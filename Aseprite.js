@@ -346,7 +346,8 @@ class Aseprite {
     const loops = [
       'Forward',
       'Reverse',
-      'Ping-pong'
+      'Ping-pong',
+      'Ping-pong Reverse'
     ]
     const numTags = this.readNextWord();
     this.skipBytes(8);
@@ -356,7 +357,8 @@ class Aseprite {
       tag.to = this.readNextWord();
       const loopsInd = this.readNextByte();
       tag.animDirection = loops[loopsInd];
-      this.skipBytes(8);
+      tag.repeat = this.readNextWord();
+      this.skipBytes(6);
       tag.color = this.readNextRawBytes(3).toString('hex');
       this.skipBytes(1);
       tag.name = this.readNextString();
@@ -526,38 +528,44 @@ class Aseprite {
     const y = this.readNextShort();
     const opacity = this.readNextByte();
     const celType = this.readNextWord();
-    this.skipBytes(7);
+    const zIndex = this.readNextShort();
+    this.skipBytes(5);
     if (celType === 1) {
-      return { layerIndex,
-          xpos: x,
-          ypos: y,
-          opacity,
-          celType,
-          w: 0,
-          h: 0,
-          rawCelData: undefined,
-          link: this.readNextWord()
+      return {
+        layerIndex,
+        xpos: x,
+        ypos: y,
+        opacity,
+        celType,
+        zIndex,
+        w: 0,
+        h: 0,
+        rawCelData: undefined,
+        link: this.readNextWord()
       };
     }
     const w = this.readNextWord();
     const h = this.readNextWord();
-    const chunkBase = { layerIndex, xpos: x, ypos: y, opacity, celType, w, h };
+    const chunkBase = {
+      layerIndex,
+      xpos: x,
+      ypos: y,
+      opacity,
+      celType,
+      zIndex,
+      w,
+      h
+    };
     if (celType === 0 || celType === 2) {
-      return { ...chunkBase, ...this.readImageCelChunk(chunkSize) }
+      const buff = this.readNextRawBytes(chunkSize - 26); // take the first 20 bytes off for the data above and chunk info
+      return {
+        ...chunkBase,
+        rawCelData: celType === 2 ? zlib.inflateSync(buff) : buff
+      }
     }
     if (celType === 3) {
       return { ...chunkBase, ...this.readTilemapCelChunk(chunkSize) }
     }
-  }
-  readImageCelChunk(chunkSize) {
-    const buff = this.readNextRawBytes(chunkSize - 26); //take the first 20 bytes off for the data above and chunk info
-    let rawCel;
-    if(celType === 2) {
-      rawCel = zlib.inflateSync(buff);
-    } else if(celType === 0) {
-      rawCel = buff;
-    }
-    return { rawCelData: rawCel };
   }
   readTilemapCelChunk(chunkSize) {
     const bitsPerTile = this.readNextWord();

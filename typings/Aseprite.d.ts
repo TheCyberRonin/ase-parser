@@ -61,6 +61,7 @@ declare namespace Aseprite {
     ypos: number;
     opacity: number;
     celType: number;
+    zIndex: number;
     link?: number;
     w: number;
     h: number;
@@ -78,6 +79,7 @@ declare namespace Aseprite {
     from: number;
     to: number;
     animDirection: string;
+    repeat: number;
     color: string;
   }
   export interface Layer {

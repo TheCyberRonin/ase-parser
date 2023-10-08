@@ -44,7 +44,15 @@ async function makePNG() {
   }}).png().toBuffer();
   
   // Get the cels for the first frame
-  const cels = ase.frames[0].cels;
+  const cels = ase.frames[0].cels
+    // copy the array
+    .map(a => a)
+    .sort((a, b) => {
+      const orderA = a.layerIndex + a.zIndex;
+      const orderB = b.layerIndex + b.zIndex;
+      // sort by order, then by zIndex
+      return orderA - orderB || a.zIndex - b.zIndex;
+    })
   
   // Create png image buffers per cel to create an image of the first frame (creating the Promises to be used)
   const otherPromises = cels.map(cel => {
@@ -156,7 +164,8 @@ aseFile.parse();
 |---------------|---------|----------------------------------------|
 | from          | integer | first frame index                    |
 | to            | integer | last frame index                     |
-| animDirection | string  | `Forward`, `Reverse` or `Ping-pong`    |
+| animDirection | string  | `Forward`, `Reverse`, `Ping-pong` or `Ping-pong Reverse` |
+| repeat        | integer | repeat animation N times               |
 | color         | string  | hex color of the tag (no `#` included) |
 | name          | string  | name                                   |
 
@@ -202,6 +211,7 @@ aseFile.parse();
 | ypos             | integer | y position of the cel compared to the sprite |
 | opacity          | integer | opacity (0-255)                              |
 | celType          | integer | internally used                              |
+| zIndex           | integer | show this cel N layers later/back            |
 | w                | integer | width (in pixels)                            |
 | h                | integer | height (in pixels)                           |
 | tilemapMetadata? | [tilemap metadata](#tileset-external-file-object) object | tilemap metadata, if applicable |
