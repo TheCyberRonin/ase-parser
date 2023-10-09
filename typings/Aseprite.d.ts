@@ -83,7 +83,7 @@ declare namespace Aseprite {
     color: string;
   }
   export interface Layer {
-    flags: number;
+    flags: Aseprite.LayerFlags;
     type: number;
     layerChildLevel: number;
     blendMode: number;
@@ -124,5 +124,14 @@ declare namespace Aseprite {
     flag: number;
     fGamma: number;
     icc?: Buffer;
+  }
+  export interface LayerFlags {
+    visible: boolean;
+    editable: boolean;
+    lockMovement: boolean;
+    background: boolean;
+    preferLinkedCels: boolean;
+    collapsedGroup: boolean;
+    reference: boolean;
   }
 }

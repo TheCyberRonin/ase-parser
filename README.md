@@ -1,3 +1,7 @@
+[![npm](https://img.shields.io/npm/v/ase-parser.svg)](https://www.npmjs.com/package/ase-parser)
+[![npm](https://img.shields.io/npm/dt/ase-parser.svg?maxAge=3600)](https://www.npmjs.com/package/ase-parser)
+[![install size](https://packagephobia.now.sh/badge?p=ase-parser)](https://packagephobia.now.sh/result?p=ase-parser)
+
 # ase-parser
 Parse Aseprite files with Node.js, no external dependencies.
 
@@ -151,7 +155,7 @@ aseFile.parse();
 ## Layer Object
 | Field           | Type    | Description                   |
 |-----------------|---------|-------------------------------|
-| flags           | integer | flags for the layer           |
+| flags           | [layer flags](#layer-flags-object) | flags for the layer translated into a map          |
 | type            | integer | type                          |
 | layerChildLevel | integer | layer child level             |
 | opacity         | integer | opacity (0-255)               |
@@ -266,6 +270,19 @@ aseFile.parse();
 |-------|---------|-----------------|
 | x     | integer | X position of the pivot |
 | y     | integer | Y position of the pivot |
+
+## Layer Flags Object
+
+This object is a utility object that will have ***ALL*** fields present. If a field is "on" it will be `true`, if the field is "off" it will be `false`.
+
+| Field | Description    |
+|-------|---------|
+| visible     | Whether or not the layer is visible |
+| editable     | Whether or not the layer is editable |
+| lockMovement | Whether or not the layer is a background layer |
+| preferLinkedCels | Whether or not the layer prefers linked cels |
+| collapsedGroup | Whether or not the layer group should be displayed collapsed |
+| reference | Whether or not the layer is a reference layer |
 
 # Further Info
 
