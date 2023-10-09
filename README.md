@@ -48,7 +48,15 @@ async function makePNG() {
   }}).png().toBuffer();
   
   // Get the cels for the first frame
-  const cels = ase.frames[0].cels;
+  const cels = ase.frames[0].cels
+    // copy the array
+    .map(a => a)
+    .sort((a, b) => {
+      const orderA = a.layerIndex + a.zIndex;
+      const orderB = b.layerIndex + b.zIndex;
+      // sort by order, then by zIndex
+      return orderA - orderB || a.zIndex - b.zIndex;
+    })
   
   // Create png image buffers per cel to create an image of the first frame (creating the Promises to be used)
   const otherPromises = cels.map(cel => {
@@ -134,6 +142,7 @@ aseFile.parse();
 | tags         | arry of [tag](#tag-object) objects    | tags                                   |
 | colorProfile | [colorProfile](#color-profile-object) object    | Color profile                          |
 | palette      | [palette](#palette-object) object         | Palette                                |
+| tilesets     | array of [tileset](#tileset-object) objects | Tileset                                |
 | slices       | array of [slice](#slice-object) objects | Info on slices |
 
 ## Frame Object
@@ -144,13 +153,14 @@ aseFile.parse();
 | cels          | array of [cel](#cel-object) objects | cels             |
 
 ## Layer Object
-| Field           | Type    | Description         |
-|-----------------|---------|---------------------|
-| flags           | integer | flags for the layer |
-| type            | integer | type                |
-| layerChildLevel | integer | layer child level   |
-| opacity         | integer | opacity (0-255)     |
-| name            | string  | name of layer       |
+| Field           | Type    | Description                   |
+|-----------------|---------|-------------------------------|
+| flags           | integer | flags for the layer           |
+| type            | integer | type                          |
+| layerChildLevel | integer | layer child level             |
+| opacity         | integer | opacity (0-255)               |
+| tilesetIndex?   | integer | the tileset id, if applicable |
+| name            | string  | name of layer                 |
 
 
 ## Tag Object
@@ -158,7 +168,8 @@ aseFile.parse();
 |---------------|---------|----------------------------------------|
 | from          | integer | first frame index                    |
 | to            | integer | last frame index                     |
-| animDirection | string  | `Forward`, `Reverse` or `Ping-pong`    |
+| animDirection | string  | `Forward`, `Reverse`, `Ping-pong` or `Ping-pong Reverse` |
+| repeat        | integer | repeat animation N times               |
 | color         | string  | hex color of the tag (no `#` included) |
 | name          | string  | name                                   |
 
@@ -179,17 +190,45 @@ aseFile.parse();
 | colors      | array of [color](#color-object) objects | colors                   |
 | index?      | integer                | position of the indexed color based on the palette |
 
+## Tileset Object
+| Field           | Type                   | Description                |
+|-----------------|------------------------|----------------------------|
+| id              | integer                | tileset id number          |
+| tileCount       | integer                | number of tiles            |
+| tileWidth       | integer                | pixel width of each tile   |
+| tileHeight      | integer                | pixel height ofeach tile   |
+| name            | string                 | name                       |
+| externalFile?   | [tileset external file](#tileset-external-file-object) object | external file linkage info, if applicable |
+| rawTilesetData? | Buffer | raw pixel data for tiles, if applicable |
+
+## Tileset External File Object
+| Field     | Type    | Description                               |
+|-----------|---------|-------------------------------------------|
+| id        | integer | id of the external file                   |
+| tilesetId | integer | id of the tileset in the external file    |
+
 ## Cel Object
-| Field      | Type    | Description                                  |
-|------------|---------|----------------------------------------------|
-| layerIndex | integer | index of the layer associated                |
-| xpos       | integer | x position of the cel compared to the sprite |
-| ypos       | integer | y position of the cel compared to the sprite |
-| opacity    | integer | opacity (0-255)                              |
-| celType    | integer | internally used                              |
-| w          | integer | width (in pixels)                            |
-| h          | integer | height (in pixels)                           |
-| rawCelData | Buffer  | raw cel pixel data                           |
+| Field            | Type    | Description                                  |
+|------------------|---------|----------------------------------------------|
+| layerIndex       | integer | index of the layer associated                |
+| xpos             | integer | x position of the cel compared to the sprite |
+| ypos             | integer | y position of the cel compared to the sprite |
+| opacity          | integer | opacity (0-255)                              |
+| celType          | integer | internally used                              |
+| zIndex           | integer | show this cel N layers later/back            |
+| w                | integer | width (in pixels)                            |
+| h                | integer | height (in pixels)                           |
+| tilemapMetadata? | [tilemap metadata](#tileset-external-file-object) object | tilemap metadata, if applicable |
+| rawCelData       | Buffer  | raw cel pixel data                           |
+
+## Tilemap Metadata Object
+| Field                  | Type    | Description                                             |
+|------------------------|---------|---------------------------------------------------------|
+| bitsPerTile            | integer | number of bits used to represent each tile (usually 32) |
+| bitmaskForTileId       | integer | which bit(s) represent the tile ID                      |
+| bitmaskForXFlip        | integer | which bit(s) indicate X-axis flip                       |
+| bitmaskForYFlip        | integer | which bit(s) indicate Y-axis flip                       |
+| bitmaskFor90CWRotation | integer | which bit(s) indicate 90-degree clockwise rotation flip |
 
 ## Color Object
 | Field | Type    | Description                                   |

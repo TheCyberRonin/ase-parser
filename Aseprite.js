@@ -20,6 +20,7 @@ class Aseprite {
     this.pixelRatio;
     this.name = name;
     this.tags = [];
+    this.tilesets = [];
   }
 
   /**
@@ -298,6 +299,11 @@ class Aseprite {
         case 0x2019:
           this.palette = this.readPaletteChunk();
           break;
+        case 0x2023:
+          this.tilesets.push(this.readTilesetChunk());
+          break;
+        default: // ignore unknown chunk types
+          this.skipBytes(chunkData.chunkSize - 6);
       }
     }
     this.frames.push({ bytesInFrame,
@@ -340,7 +346,8 @@ class Aseprite {
     const loops = [
       'Forward',
       'Reverse',
-      'Ping-pong'
+      'Ping-pong',
+      'Ping-pong Reverse'
     ]
     const numTags = this.readNextWord();
     this.skipBytes(8);
@@ -350,7 +357,8 @@ class Aseprite {
       tag.to = this.readNextWord();
       const loopsInd = this.readNextByte();
       tag.animDirection = loops[loopsInd];
-      this.skipBytes(8);
+      tag.repeat = this.readNextWord();
+      this.skipBytes(6);
       tag.color = this.readNextRawBytes(3).toString('hex');
       this.skipBytes(1);
       tag.name = this.readNextString();
@@ -396,6 +404,37 @@ class Aseprite {
     }
     this.colorDepth === 8 ? palette.index = this.paletteIndex : '';
     return palette;
+  }
+
+  /**
+   * Reads the Tileset Chunk and stores the information
+   * Tileset Chunk is type 0x2023
+   */
+  readTilesetChunk() {
+    const id = this.readNextDWord();
+    const flags = this.readNextDWord();
+    const tileCount = this.readNextDWord();
+    const tileWidth = this.readNextWord();
+    const tileHeight = this.readNextWord();
+    this.skipBytes(16);
+    const name = this.readNextString();
+    const tileset = {
+      id,
+      tileCount,
+      tileWidth,
+      tileHeight,
+      name };
+    if ((flags & 1) !== 0) {
+      tileset.externalFile = {}
+      tileset.externalFile.id = this.readNextDWord();
+      tileset.externalFile.tilesetId = this.readNextDWord();
+    }
+    if ((flags & 2) !== 0) {
+      const dataLength = this.readNextDWord();
+      const buff = this.readNextRawBytes(dataLength);
+      tileset.rawTilesetData = zlib.inflateSync(buff);
+    }
+    return tileset;
   }
 
   /**
@@ -461,26 +500,25 @@ class Aseprite {
    * Layer Chunk is type 0x2004
    */
   readLayerChunk() {
-    const flags = this.readNextWord();
-    const type = this.readNextWord();
-    const layerChildLevel = this.readNextWord();
+    const layer = {}
+    layer.flags = this.readNextWord();
+    layer.type = this.readNextWord();
+    layer.layerChildLevel = this.readNextWord();
     this.skipBytes(4);
-    const blendMode = this.readNextWord();
-    const opacity = this.readNextByte();
+    layer.blendMode = this.readNextWord();
+    layer.opacity = this.readNextByte();
     this.skipBytes(3);
-    const name = this.readNextString();
-    this.layers.push({ flags,
-      type,
-      layerChildLevel,
-      blendMode,
-      opacity,
-      name});
+    layer.name = this.readNextString();
+    if (layer.type == 2) {
+      layer.tilesetIndex =this.readNextDWord()
+    }
+    this.layers.push(layer);
   }
 
   /**
    * Reads a Cel Chunk in its entirety and returns the information
    * Cel Chunk is type 0x2005
-   * 
+   *
    * @param {number} chunkSize - Size of the Cel Chunk to read
    * @returns {Object} Cel information
    */
@@ -490,37 +528,61 @@ class Aseprite {
     const y = this.readNextShort();
     const opacity = this.readNextByte();
     const celType = this.readNextWord();
-    this.skipBytes(7);
+    const zIndex = this.readNextShort();
+    this.skipBytes(5);
     if (celType === 1) {
-      return { layerIndex,
-          xpos: x,
-          ypos: y,
-          opacity,
-          celType,
-          w: 0,
-          h: 0,
-          rawCelData: undefined,
-          link: this.readNextWord()
+      return {
+        layerIndex,
+        xpos: x,
+        ypos: y,
+        opacity,
+        celType,
+        zIndex,
+        w: 0,
+        h: 0,
+        rawCelData: undefined,
+        link: this.readNextWord()
       };
     }
     const w = this.readNextWord();
     const h = this.readNextWord();
-    const buff = this.readNextRawBytes(chunkSize - 26); //take the first 20 bytes off for the data above and chunk info
-    let rawCel;
-    if(celType === 2) {
-      rawCel = zlib.inflateSync(buff);
-    } else if(celType === 0) {
-      rawCel = buff;
-    }
-    return { layerIndex,
+    const chunkBase = {
+      layerIndex,
       xpos: x,
       ypos: y,
       opacity,
       celType,
+      zIndex,
       w,
-      h,
-      rawCelData: rawCel
+      h
     };
+    if (celType === 0 || celType === 2) {
+      const buff = this.readNextRawBytes(chunkSize - 26); // take the first 20 bytes off for the data above and chunk info
+      return {
+        ...chunkBase,
+        rawCelData: celType === 2 ? zlib.inflateSync(buff) : buff
+      }
+    }
+    if (celType === 3) {
+      return { ...chunkBase, ...this.readTilemapCelChunk(chunkSize) }
+    }
+  }
+  readTilemapCelChunk(chunkSize) {
+    const bitsPerTile = this.readNextWord();
+    const bitmaskForTileId = this.readNextDWord();
+    const bitmaskForXFlip = this.readNextDWord();
+    const bitmaskForYFlip = this.readNextDWord();
+    const bitmaskFor90CWRotation = this.readNextDWord();
+    this.skipBytes(10);
+    const buff = this.readNextRawBytes(chunkSize - 54);
+    const rawCelData = zlib.inflateSync(buff);
+    const tilemapMetadata = {
+      bitsPerTile,
+      bitmaskForTileId,
+      bitmaskForXFlip,
+      bitmaskForYFlip,
+      bitmaskFor90CWRotation };
+    return { tilemapMetadata, rawCelData };
   }
 
   /**
@@ -610,6 +672,7 @@ class Aseprite {
           }) }
       }),
       palette: this.palette,
+      tilesets: this.tilesets,
       width: this.width,
       height: this.height,
       colorDepth: this.colorDepth,
