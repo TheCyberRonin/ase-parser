@@ -23,6 +23,23 @@ class Aseprite {
     this.tilesets = [];
   }
 
+  //#region Static Constants
+
+  /**
+   * Map of the possible flag values for a Layer
+   */
+  static LAYER_FLAG_MAP = {
+    visible: 0b1,
+    editable: 0b10,
+    lockMovement: 0b100,
+    background: 0b1000,
+    preferLinkedCels: 0b10000,
+    collapsedGroup: 0b100000,
+    reference: 0b1000000
+  };
+
+  //#endregion Static Constants
+
   /**
    * Reads the next byte (8-bit unsigned) value in the buffer
    *
@@ -210,6 +227,27 @@ class Aseprite {
    */
   skipBytes(numBytes) {
     this._offset += numBytes;
+  }
+
+  /**
+  * Translates the listed flags for a layer into true/false values
+  * dictating whether or not that flag is "on"(true) or "off"(false)
+  *
+  * @private
+  * @param {object} flagMap Object of flags and their binary value
+  * @param {number} flagValue Value of the layer flags
+  * @returns {object} Map of the flags and if they are true or false
+  */
+  #translateFlags(flagValue) {
+    // Create an object to put the flags and their "toggle" (true/false)
+    const translatedFlagMap = {};
+    // Iterate through the flags and their binary value, use bitwise op
+    // to see if the flag is present in the "layer flags" and add the
+    // flag to the map with the accompanying "toggle"
+    for( const flag in Aseprite.LAYER_FLAG_MAP) {
+      translatedFlagMap[flag] = (flagValue & Aseprite.LAYER_FLAG_MAP[flag]) == Aseprite.LAYER_FLAG_MAP[flag];
+    }
+    return translatedFlagMap;
   }
 
   /**
@@ -501,7 +539,7 @@ class Aseprite {
    */
   readLayerChunk() {
     const layer = {}
-    layer.flags = this.readNextWord();
+    layer.flags = this.#translateFlags(this.readNextWord());
     layer.type = this.readNextWord();
     layer.layerChildLevel = this.readNextWord();
     this.skipBytes(4);
