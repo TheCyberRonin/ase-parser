@@ -308,10 +308,17 @@ class Aseprite {
     this.skipBytes(2);
     const newChunk = this.readNextDWord();
     let cels = [];
+    let hasNewPaletteChunk = false;
     for(let i = 0; i < newChunk; i ++) {
       let chunkData = this.readChunk();
       switch(chunkData.type) {
         case 0x0004:
+          if (!hasNewPaletteChunk) {
+            this.palette = this.readOldPaletteChunk();
+          } else {
+            this.skipBytes(chunkData.chunkSize - 6);
+          }
+          break;
         case 0x0011:
         case 0x2016:
         case 0x2017:
@@ -335,6 +342,7 @@ class Aseprite {
           this.readFrameTagsChunk();
           break;
         case 0x2019:
+          hasNewPaletteChunk = true;
           this.palette = this.readPaletteChunk();
           break;
         case 0x2023:
@@ -440,6 +448,42 @@ class Aseprite {
       lastColor: secondColor,
       colors
     }
+    this.colorDepth === 8 ? palette.index = this.paletteIndex : '';
+    return palette;
+  }
+
+  /**
+   * Reads the old Palette Chunk and stores the information
+   * Old Palette Chunk is type 0x0004
+   *
+   * @returns {Palette}
+   */
+  readOldPaletteChunk() {
+    const packetCount = this.readNextWord();
+    const colors = [];
+    let colorIndex = 0;
+
+    for (let i = 0; i < packetCount; i++) {
+      colorIndex += this.readNextByte();
+      const colorCount = this.readNextByte() || 256;
+
+      for (let j = 0; j < colorCount; j++) {
+        colors[colorIndex++] = {
+          red: this.readNextByte(),
+          green: this.readNextByte(),
+          blue: this.readNextByte(),
+          alpha: 255,
+          name: 'none'
+        };
+      }
+    }
+
+    const palette = {
+      paletteSize: colors.length,
+      firstColor: 0,
+      lastColor: colors.length - 1,
+      colors
+    };
     this.colorDepth === 8 ? palette.index = this.paletteIndex : '';
     return palette;
   }
