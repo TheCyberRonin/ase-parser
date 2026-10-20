@@ -90,6 +90,8 @@ declare namespace Aseprite {
     opacity: number;
     name: string;
     tilesetIndex?: number;
+    /** Hex string, only present when the file header says layers have UUIDs. */
+    uuid?: string;
   }
   export interface Slice {
     flags: number;

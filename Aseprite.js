@@ -21,6 +21,7 @@ class Aseprite {
     this.name = name;
     this.tags = [];
     this.tilesets = [];
+    this._layersHaveUuid = false;
   }
 
   //#region Static Constants
@@ -264,14 +265,17 @@ class Aseprite {
     this.width = this.readNextWord();
     this.height = this.readNextWord();
     this.colorDepth = this.readNextWord();
+    // Flags: 1 = layer opacity is valid, 2 = group opacity is valid,
+    // 4 = layers have a UUID
+    const flags = this.readNextDWord();
+    this._layersHaveUuid = (flags & 4) !== 0;
     /**
-     * Skip 14 bytes to account for:
-     *  Dword - Layer opacity flag
+     * Skip 10 bytes to account for:
      *  Word - deprecated speed (ms) between frame
      *  Dword - 0 value
      *  Dword - 0 value
      */
-    this.skipBytes(14);
+    this.skipBytes(10);
     this.paletteIndex = this.readNextByte();
     // Skip 3 bytes for empty data
     this.skipBytes(3);
@@ -301,15 +305,16 @@ class Aseprite {
     // TODO: Add a check in to make sure the magic number is correct
     // (this should help to make sure we're doing what we're supposed to)
     this.skipBytes(2);
-    // TODO Use the old chunk of data if `newChunk` is 0
     const oldChunk = this.readNextWord();
     const frameDuration = this.readNextWord();
     // Skip 2 bytes that are reserved for future use
     this.skipBytes(2);
     const newChunk = this.readNextDWord();
+    // Older files only fill in the old (word) field and leave the new one at 0
+    const numChunks = newChunk === 0 ? oldChunk : newChunk;
     let cels = [];
     let hasNewPaletteChunk = false;
-    for(let i = 0; i < newChunk; i ++) {
+    for(let i = 0; i < numChunks; i ++) {
       let chunkData = this.readChunk();
       switch(chunkData.type) {
         case 0x0004:
@@ -354,7 +359,7 @@ class Aseprite {
     }
     this.frames.push({ bytesInFrame,
       frameDuration,
-      numChunks: newChunk,
+      numChunks,
       cels});
   }
 
@@ -593,6 +598,9 @@ class Aseprite {
     layer.name = this.readNextString();
     if (layer.type == 2) {
       layer.tilesetIndex =this.readNextDWord()
+    }
+    if (this._layersHaveUuid) {
+      layer.uuid = this.readNextRawBytes(16).toString('hex');
     }
     this.layers.push(layer);
   }
